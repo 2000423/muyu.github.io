@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>木鱼</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background-color: #121212;
+            color: #FFFFFF;
+            font-family: 'PingFang SC', 'Kaiti SC', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; /* 上下分布，中间留白 */
+            padding: 2vh 0;
+        }
+
+        /* 顶部标题 */
+        .header-area {
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .main-title {
+            font-family: 'Kaiti SC', serif;
+            font-size: 10vw; 
+            line-height: 1.1;
+            background: linear-gradient(180deg, rgba(255, 176, 103, 0.05), rgba(115, 55, 0, 0.02));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            white-space: nowrap;
+        }
+
+        /* 中间核心区域：木鱼 + 分数 */
+        .center-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            width: 100%;
+        }
+
+        .muyu-wrapper {
+            position: relative;
+            cursor: pointer;
+            width: min(60vw, 380px); 
+            height: auto;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+            margin-bottom: 2vh; /* 木鱼与分数的间距 */
+        }
+        
+        .muyu-img {
+            width: 100%;
+            display: block;
+            pointer-events: none;
+        }
+        
+        .hammer-img {
+            position: absolute;
+            top: 15%;
+            right: -15%;
+            width: 45%; 
+            transform-origin: bottom left;
+            transition: transform 0.1s ease-out;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .muyu-wrapper.active {
+            transform: scale(0.95);
+        }
+        
+        .hammer-img.active {
+            transform: rotate(-35deg) translateX(-10px);
+        }
+
+        /* 木鱼下方的分数区 */
+        .score-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-value {
+            font-family: 'PingFang SC', sans-serif;
+            font-size: 8vh;
+            font-weight: 900;
+            line-height: 1;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+        }
+
+        .score-label {
+            font-family: 'Kaiti SC', serif;
+            font-size: 2.5vh;
+            margin-top: 5px;
+            opacity: 0.7;
+            letter-spacing: 2px;
+        }
+        
+        /* 漂浮文字 */
+        .floating-text {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+            font-family: 'PingFang SC', sans-serif;
+            font-size: 1.8rem;
+            color: #ffb067;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 20;
+        }
+        
+        .floating-text.animate {
+            animation: floatUp 0.6s ease-out forwards;
+        }
+        
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-20px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-100px) scale(1.2);
+            }
+        }
+        
+        /* 底部提示 */
+        .footer-text {
+            font-family: 'Kaiti SC', serif;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            padding-bottom: 1vh;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-area">
+        <h1 class="main-title">真能积德的赛博木鱼</h1>
+    </div>
+
+    <div class="center-stage">
+        <!-- 木鱼 -->
+        <div class="muyu-wrapper" id="muyuBtn">
+            <img src="https://img.alicdn.com/imgextra/i3/O1CN012CO0YU1VSfNs506ZS_!!6000000002652-2-tps-284-236.png" alt="木鱼" class="muyu-img">
+            <img src="https://img.alicdn.com/imgextra/i1/O1CN01tKb5Et1aSjWRjCHK3_!!6000000003329-2-tps-119-69.png" alt="锤子" class="hammer-img" id="hammerImg">
+        </div>
+
+        <!-- 分数（木鱼下方） -->
+        <div class="score-section">
+            <div class="score-value" id="scoreDisplay">0</div>
+            <div class="score-label">功德</div>
+        </div>
+    </div>
+
+    <div class="footer-text">轻敲木鱼，细悟赛博真经。</div>
+
+    <audio id="knockSound" src="https://qianwen.alicdn.com/resource/qiaomuyu.mp3" preload="auto"></audio>
+
+    <script>
+        const muyuBtn = document.getElementById('muyuBtn');
+        const hammerImg = document.getElementById('hammerImg');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const knockSound = document.getElementById('knockSound');
+        
+        let score = 0;
+
+        window.addEventListener('load', () => {
+            knockSound.load();
+        });
+
+        function knock(e) {
+            if(e) e.preventDefault();
+
+            // 播放声音
+            const soundClone = knockSound.cloneNode();
+            soundClone.volume = 1.0;
+            soundClone.play().catch(err => console.log('Audio play failed:', err));
+
+            // 更新分数
+            score++;
+            scoreDisplay.textContent = score;
+
+            // 动画效果
+            muyuBtn.classList.add('active');
+            setTimeout(() => {
+                muyuBtn.classList.remove('active');
+            }, 100);
+
+            hammerImg.classList.add('active');
+            setTimeout(() => {
+                hammerImg.classList.remove('active');
+            }, 100);
+
+            // 漂浮文字
+            createFloatingText();
+        }
+
+        function createFloatingText() {
+            const text = document.createElement('div');
+            text.className = 'floating-text animate';
+            text.textContent = '功德 +1';
+            
+            const randomX = (Math.random() - 0.5) * 30;
+            text.style.transform = `translateX(calc(-50% + ${randomX}px))`;
+            
+            muyuBtn.appendChild(text);
+
+            setTimeout(() => {
+                text.remove();
+            }, 600);
+        }
+
+        muyuBtn.addEventListener('mousedown', knock);
+        muyuBtn.addEventListener('touchstart', knock, { passive: false });
+        
+        document.addEventListener('dblclick', function(event) {
+            event.preventDefault();
+        }, { passive: false });
+
+    </script>
+</body>
+</html>
